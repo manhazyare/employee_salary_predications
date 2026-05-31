@@ -1,0 +1,127 @@
+/*
+===============================================================================
+Project      : Job Salary Prediction Analysis
+Database     : HR_SalaryDB
+Purpose      : Create database, create table, and load CSV data
+Author       : Mohamed Billow
+===============================================================================
+*/
+
+ /*
+===============================================================================
+Step 1: Create Database
+===============================================================================
+Purpose:
+    Create the database that will store the Job Salary Prediction dataset.
+===============================================================================
+*/
+
+CREATE DATABASE HR_SalaryDB;
+GO
+
+/*
+===============================================================================
+Step 2: Switch to Database
+===============================================================================
+Purpose:
+    Set HR_SalaryDB as the active database for all subsequent operations.
+===============================================================================
+*/
+
+USE HR_SalaryDB;
+GO
+
+/*
+===============================================================================
+Step 3: Drop Existing Table
+===============================================================================
+Purpose:
+    Remove the table if it already exists to allow a fresh reload of data.
+===============================================================================
+*/
+
+DROP TABLE IF EXISTS job_salary_prediction;
+GO
+
+/*
+===============================================================================
+Step 4: Create Table
+===============================================================================
+Purpose:
+    Create a staging table to store the raw dataset imported from CSV.
+===============================================================================
+*/
+
+CREATE TABLE job_salary_prediction (
+    job_title          VARCHAR(100),
+    experience_years   INT,
+    education_level    VARCHAR(50),
+    skills_count       INT,
+    industry           VARCHAR(100),
+    company_size       VARCHAR(50),
+    location           VARCHAR(100),
+    remote_work        VARCHAR(20),
+    certifications     INT,
+    salary             INT
+);
+GO
+
+/*
+===============================================================================
+Step 5: Load Data from CSV File
+===============================================================================
+Purpose:
+    Import the dataset into SQL Server using BULK INSERT.
+
+Notes:
+    - The original dataset was converted and saved as a CSV file.
+    - The first row contains column headers and is skipped.
+===============================================================================
+*/
+
+BULK INSERT job_salary_prediction
+FROM 'C:\Users\moham\OneDrive\Desktop\Kaggle data set\job_salary_predication.csv'
+WITH (
+    FIRSTROW = 2,            -- Skip header row
+    FIELDTERMINATOR = ',',   -- Columns separated by commas
+    ROWTERMINATOR = '\n',    -- New row delimiter
+    TABLOCK                 -- Improves loading performance
+);
+GO
+
+/*
+===============================================================================
+Step 6: Validate Data Load
+===============================================================================
+Purpose:
+    Confirm that all records were successfully imported.
+===============================================================================
+*/
+
+SELECT
+    COUNT(*) AS total_records
+FROM job_salary_prediction;
+GO
+
+/*
+===============================================================================
+Dataset Overview
+===============================================================================
+Columns:
+    • job_title         - Position or role title
+    • experience_years - Years of professional experience
+    • education_level  - Highest education attained
+    • skills_count     - Number of relevant skills
+    • industry         - Industry sector
+    • company_size     - Size classification of employer
+    • location         - Job location
+    • remote_work      - Remote work availability/status
+    • certifications   - Number of professional certifications
+    • salary           - Employee salary
+
+Project Goal:
+    Analyze salary trends and identify the factors influencing
+    employee compensation using SQL-based data exploration
+    and analytics.
+===============================================================================
+*/
