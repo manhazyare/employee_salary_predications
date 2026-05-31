@@ -1,0 +1,41 @@
+/*
+===============================================================================
+Data Cleaning: Standardize Remote Work Values
+===============================================================================
+Purpose:
+    Replace binary values ('Yes' and 'No') with more descriptive
+    business-friendly labels ('Remote' and 'Onsite').
+
+Benefits:
+    - Improves readability
+    - Enhances reporting and dashboard presentation
+    - Creates consistent categorical values
+===============================================================================
+*/
+
+-- Convert 'Yes' values to 'Remote'
+UPDATE job_salary_prediction
+SET remote_work = 'Remote'
+WHERE remote_work = 'Yes';
+
+-- Convert 'No' values to 'Onsite'
+UPDATE job_salary_prediction
+SET remote_work = 'Onsite'
+WHERE remote_work = 'No';
+
+GO
+
+/*
+===============================================================================
+Validation Check
+===============================================================================
+Purpose:
+    Verify that the standardization was successful and identify
+    all remaining unique values in the remote_work column.
+===============================================================================
+*/
+
+SELECT DISTINCT
+    remote_work
+FROM job_salary_prediction;
+GO
