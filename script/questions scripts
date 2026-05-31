@@ -1,8 +1,9 @@
 /* =============================================================================
    ANALYTICS PROJECT: JOB SALARY INSIGHTS
-   PURPOSE: Understand how experience, education, skills, and market factors
+   PURPOSE: Analyze how experience, education, skills, and market factors
             influence salary across roles and industries.
 ============================================================================= */
+
 
 -- ============================================================================
 -- 1. How do education level and experience jointly impact salary by job title?
@@ -13,40 +14,40 @@ WITH experience_bands AS (
         education_level,
         salary,
         CASE
-            WHEN experience_years BETWEEN 0 AND 2 THEN 'Entry'
-            WHEN experience_years BETWEEN 3 AND 5 THEN 'Junior'
-            WHEN experience_years BETWEEN 6 AND 10 THEN 'Mid'
-            ELSE 'Senior'
-        END AS experience_level
+            WHEN experience_years BETWEEN 0 AND 2 THEN 'Entry Level'
+            WHEN experience_years BETWEEN 3 AND 5 THEN 'Junior Level'
+            WHEN experience_years BETWEEN 6 AND 10 THEN 'Mid Level'
+            ELSE 'Expert/Senior'
+        END AS experience_category
     FROM job_salary_prediction
 )
 
 SELECT
     job_title,
     education_level,
-    experience_level,
+    experience_category,
     ROUND(AVG(salary), 2) AS avg_salary
 FROM experience_bands
-GROUP BY job_title, education_level, experience_level
+GROUP BY job_title, education_level, experience_category
 ORDER BY avg_salary DESC;
 
 
 -- ============================================================================
--- 2. Which combination of industry, company size, and location pays the most?
+-- 2. Which industry, company size, and location pay the most?
 -- ============================================================================
 SELECT
     industry,
     company_size,
     location,
-    COUNT(*) AS job_count,
-    ROUND(AVG(CAST(salary AS DECIMAL(18,2))), 2) AS avg_salary
+    COUNT(*) AS total_jobs,
+    ROUND(AVG(salary), 2) AS avg_salary
 FROM job_salary_prediction
 GROUP BY industry, company_size, location
 ORDER BY avg_salary DESC;
 
 
 -- ============================================================================
--- 3. Do remote, hybrid, or onsite employees earn more by job title?
+-- 3. Do remote, hybrid, or onsite roles pay differently by job title?
 -- ============================================================================
 SELECT
     job_title,
@@ -68,29 +69,34 @@ WITH base AS (
             WHEN experience_years BETWEEN 0 AND 2 THEN 'Entry'
             WHEN experience_years BETWEEN 3 AND 5 THEN 'Junior'
             WHEN experience_years BETWEEN 6 AND 10 THEN 'Mid'
-            ELSE 'Senior'
+            ELSE 'Expert/Senior'
         END AS experience_level,
         CASE
-            WHEN skills_count <= 3 THEN 'Low'
-            WHEN skills_count <= 7 THEN 'Medium'
+            WHEN skills_count BETWEEN 0 AND 3 THEN 'Low'
+            WHEN skills_count BETWEEN 4 AND 7 THEN 'Medium'
             ELSE 'High'
         END AS skill_level,
         CASE
             WHEN certifications = 0 THEN 'None'
-            WHEN certifications <= 2 THEN 'Basic'
+            WHEN certifications BETWEEN 1 AND 2 THEN 'Basic'
             ELSE 'Advanced'
         END AS cert_level
     FROM job_salary_prediction
+),
+
+aggregated AS (
+    SELECT
+        experience_level,
+        skill_level,
+        cert_level,
+        COUNT(*) AS total_employees,
+        ROUND(AVG(salary), 2) AS avg_salary
+    FROM base
+    GROUP BY experience_level, skill_level, cert_level
 )
 
-SELECT
-    experience_level,
-    skill_level,
-    cert_level,
-    COUNT(*) AS employee_count,
-    ROUND(AVG(salary), 2) AS avg_salary
-FROM base
-GROUP BY experience_level, skill_level, cert_level
+SELECT *
+FROM aggregated
 ORDER BY experience_level, skill_level, cert_level;
 
 
@@ -101,36 +107,38 @@ WITH job_stats AS (
     SELECT
         job_title,
         industry,
-        COUNT(*) AS demand,
+        COUNT(*) AS demand_count,
         AVG(salary) AS avg_salary
     FROM job_salary_prediction
     GROUP BY job_title, industry
 ),
-job_aggregated AS (
+
+job_demand AS (
     SELECT
         job_title,
-        SUM(demand) AS total_demand,
+        SUM(demand_count) AS total_demand,
         COUNT(DISTINCT industry) AS industry_coverage,
-        AVG(avg_salary) AS avg_job_salary
+        AVG(avg_salary) AS overall_avg_salary
     FROM job_stats
     GROUP BY job_title
 ),
-market AS (
-    SELECT AVG(salary) AS market_avg
+
+market_baseline AS (
+    SELECT AVG(salary) AS market_avg_salary
     FROM job_salary_prediction
 )
 
 SELECT
-    j.job_title,
-    j.total_demand,
-    j.industry_coverage,
-    ROUND(j.avg_job_salary, 2) AS job_avg_salary,
-    ROUND(m.market_avg, 2) AS market_avg_salary,
+    jd.job_title,
+    jd.total_demand,
+    jd.industry_coverage,
+    ROUND(jd.overall_avg_salary, 2) AS job_avg_salary,
+    ROUND(mb.market_avg_salary, 2) AS market_avg_salary,
     CASE
-        WHEN j.avg_job_salary > m.market_avg THEN 'Above Market'
-        WHEN j.avg_job_salary < m.market_avg THEN 'Below Market'
+        WHEN jd.overall_avg_salary > mb.market_avg_salary THEN 'Above Market'
+        WHEN jd.overall_avg_salary < mb.market_avg_salary THEN 'Below Market'
         ELSE 'At Market'
     END AS compensation_status
-FROM job_aggregated j
-CROSS JOIN market m
-ORDER BY j.total_demand DESC, j.industry_coverage DESC;
+FROM job_demand jd
+CROSS JOIN market_baseline mb
+ORDER BY jd.total_demand DESC, jd.industry_coverage DESC;
